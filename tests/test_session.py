@@ -180,7 +180,7 @@ async def test_config_flow(hass: HomeAssistant) -> None:
 
 
 async def test_options_flow_adds_missing_entities(hass: HomeAssistant) -> None:
-    """Entries from 1.0.0 lack start button and power sensor."""
+    """Pre-release entries lack start button and power sensor."""
     entry = await _setup(hass)
     result = await hass.config_entries.options.async_init(entry.entry_id)
     assert result["type"] is FlowResultType.FORM

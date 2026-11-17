@@ -88,12 +88,12 @@ display_style: false # optional: dark garage-display look instead of theme colou
 
 Any entity can be overridden explicitly (`status_entity`, `power_entity`,
 `start_button`, `stop_button`, `duration_entity`, `energy_entity`). Cards
-written for 1.0.0 with explicit entities keep working.
+that list the entities explicitly keep working.
 
 If something is missing, the card shows a hint and disables the button. It
 never guesses an entity.
 
-### Upgrading from 1.0.0
+### Upgrading from a pre-release install (before v1.0.0)
 
 - Open the integration → **Configure** and add the **start button** and the
   **charging power** sensor. The card needs both and tells you if they are

@@ -201,7 +201,7 @@ test("entities come from the integration entry", async () => {
   assert.deepEqual(hass.calls, [["button", "press", { entity_id: "button.stop" }]]);
 });
 
-test("entry missing new entities (1.0.0) shows which ones", async () => {
+test("entry missing new entities (pre-release) shows which ones", async () => {
   const { h } = helpers();
   const c = card(h, { entry_id: "abc" });
   const entry = { entry_id: "abc", title: "Garage", status_entity: "sensor.st", stop_button: "button.stop" };
