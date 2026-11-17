@@ -6,6 +6,8 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-17
+
 ### Added
 - ESPHome display: **board temperature** sensor
   (`sensor.garage_display_board_temperature`, diagnostic, every 60 s,
@@ -46,5 +48,6 @@ First release.
 - **Tests and CI:** session logic, card registration, websocket, card source
   rules, `node --test` card tests, HACS and hassfest checks.
 
-[Unreleased]: https://github.com/yannick80/ha-garage-charger/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/yannick80/ha-garage-charger/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/yannick80/ha-garage-charger/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/yannick80/ha-garage-charger/releases/tag/v1.0.0
