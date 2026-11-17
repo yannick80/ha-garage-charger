@@ -108,6 +108,9 @@ function states(status, power = "0") {
   };
 }
 
+// objects created inside the vm context have other prototypes: compare values
+const plain = (x) => JSON.parse(JSON.stringify(x));
+
 function card(h, config) {
   const c = new h.GarageChargerCard();
   c.setConfig(config);
@@ -171,7 +174,7 @@ test("start sends exactly the configured button and then waits", () => {
   const hass = hassWith(states("preparing"));
   c.hass = hass;
   c.shadowRoot.getElementById("btn").click();
-  assert.deepEqual(hass.calls, [["button", "press", { entity_id: "button.start" }]]);
+  assert.deepEqual(plain(hass.calls), [["button", "press", { entity_id: "button.start" }]]);
   assert.equal(c.shadowRoot.getElementById("btn").className, "wait");
   c.shadowRoot.getElementById("btn").click(); // refuse, never queue
   assert.equal(hass.calls.length, 1);
@@ -198,7 +201,7 @@ test("entities come from the integration entry", async () => {
   assert.equal(root.getElementById("power").textContent, "7,4");
   assert.equal(root.getElementById("dur").textContent, "1:42 h");
   root.getElementById("btn").click();
-  assert.deepEqual(hass.calls, [["button", "press", { entity_id: "button.stop" }]]);
+  assert.deepEqual(plain(hass.calls), [["button", "press", { entity_id: "button.stop" }]]);
 });
 
 test("entry missing new entities (pre-release) shows which ones", async () => {
