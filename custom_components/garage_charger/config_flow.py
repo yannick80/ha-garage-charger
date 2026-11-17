@@ -13,6 +13,8 @@ from homeassistant.helpers import selector
 
 from .const import (
     CONF_ENERGY_ENTITY,
+    CONF_POWER_ENTITY,
+    CONF_START_BUTTON,
     CONF_STATUS_ENTITY,
     CONF_STOP_BUTTON,
     DEFAULT_NAME,
@@ -26,8 +28,16 @@ def _entity_schema(defaults: dict[str, Any]) -> dict:
             CONF_STATUS_ENTITY, default=defaults.get(CONF_STATUS_ENTITY, vol.UNDEFINED)
         ): selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor")),
         vol.Required(
+            CONF_START_BUTTON, default=defaults.get(CONF_START_BUTTON, vol.UNDEFINED)
+        ): selector.EntitySelector(selector.EntitySelectorConfig(domain="button")),
+        vol.Required(
             CONF_STOP_BUTTON, default=defaults.get(CONF_STOP_BUTTON, vol.UNDEFINED)
         ): selector.EntitySelector(selector.EntitySelectorConfig(domain="button")),
+        vol.Required(
+            CONF_POWER_ENTITY, default=defaults.get(CONF_POWER_ENTITY, vol.UNDEFINED)
+        ): selector.EntitySelector(
+            selector.EntitySelectorConfig(domain="sensor", device_class="power")
+        ),
         vol.Required(
             CONF_ENERGY_ENTITY, default=defaults.get(CONF_ENERGY_ENTITY, vol.UNDEFINED)
         ): selector.EntitySelector(

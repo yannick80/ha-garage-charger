@@ -33,7 +33,11 @@ exposes start/stop button entities.
 - **Dashboard card** `custom:garage-charger-card`:
   - shows status, power, clock, charging time, energy and one big
     Start/Stop button;
-  - is loaded automatically by the integration, so you don't add a resource.
+  - is **loaded automatically** by the integration: it is registered as a
+    dashboard resource, so you add no resource and copy no file;
+  - has a visual editor (pick the charger, title, clock);
+  - works on old wall tablets and WebViews (legacy-safe JavaScript);
+  - follows the HA language (German/English).
 - **ESPHome display** with the same look (see [`esphome/`](esphome/)).
 
 ### Start / Stop logic
@@ -58,27 +62,51 @@ shows "Bitte warten…" until the status changes (at most 2 min).
 3. **Settings → Devices & services → Add integration → Garage Charger** and
    pick:
    - the charger **status** sensor (e.g. `sensor.<serial>_ev_charger_status`),
-   - the charger **stop** button (e.g. `button.<serial>_stop_charging`),
+   - the charger **start** and **stop** buttons
+     (e.g. `button.<serial>_start_charging` / `_stop_charging`),
+   - the **charging power** sensor (e.g. the Shelly's
+     `sensor.<shelly>_total_active_power`),
    - the **energy** meter of the wallbox (e.g. the Shelly's
      `sensor.<shelly>_total_active_energy`).
 
    With the name "Garage" this creates `sensor.garage_ladedauer` and
    `sensor.garage_geladen`. You can change the entities later under
    *Configure*.
-4. Dashboard → **Add card → Garage Charger Card**. The entities are
-   pre-filled where they can be found. Or add it in YAML:
+4. Dashboard → **Add card → Garage Charger Card**. The editor selects the
+   first configured charger and takes all entities from the integration.
+   In YAML:
 
 ```yaml
 type: custom:garage-charger-card
-title: Garage
-status_entity: sensor.<serial>_ev_charger_status
-power_entity: sensor.<shelly>_total_active_power
-start_button: button.<serial>_start_charging
-stop_button: button.<serial>_stop_charging
-duration_entity: sensor.garage_ladedauer
-energy_entity: sensor.garage_geladen
-show_clock: true   # optional
+entry_id: <id of the Garage Charger entry>   # filled in by the editor
+title: Garage        # optional
+show_clock: true     # optional
 ```
+
+Any entity can be overridden explicitly (`status_entity`, `power_entity`,
+`start_button`, `stop_button`, `duration_entity`, `energy_entity`). Cards
+written for 1.0.0 with explicit entities keep working.
+
+If something is missing, the card shows a hint and disables the button. It
+never guesses an entity.
+
+### Upgrading from 1.0.0
+
+- Open the integration → **Configure** and add the **start button** and the
+  **charging power** sensor. The card needs both and tells you if they are
+  missing.
+- If you ever added `/local/garage-charger-card.js` as a resource by hand,
+  remove it (*Settings → Dashboards → Resources*). The integration loads the
+  card itself and logs a warning while the old entry exists.
+
+### Card not showing ("Custom element doesn't exist")
+
+1. Open `/garage_charger/garage-charger-card.js` in the browser. A 404 means
+   the integration is not loaded.
+2. *Settings → Dashboards → Resources* should list
+   `/garage_charger/garage-charger-card.js?v=…` with type *JavaScript module*.
+3. Do a hard reload (Ctrl+Shift+R). In the companion app or on a wall
+   display, clear the frontend cache.
 
 ## ESPHome display (optional)
 
@@ -108,8 +136,11 @@ supply. **That is mains work and must be done by a qualified electrician.**
 
 ```bash
 pip install -r requirements_test.txt
-pytest
+pytest                      # integration, card registration, card source rules
+node --test tests/*.mjs     # card behaviour (no npm dependencies)
 ```
+
+See [AGENTS.md](AGENTS.md) for the rules this repo follows.
 
 ## License
 

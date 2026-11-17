@@ -18,6 +18,13 @@ STATUS = "sensor.al_ev_charger_status"
 STOP = "button.al_stop_charging"
 ENERGY = "sensor.wallbox_total_active_energy"
 KWH = {"unit_of_measurement": "kWh"}
+FULL = {
+    "status_entity": STATUS,
+    "start_button": "button.al_start_charging",
+    "stop_button": STOP,
+    "power_entity": "sensor.wallbox_total_active_power",
+    "energy_entity": ENERGY,
+}
 
 
 @pytest.fixture(autouse=True)
@@ -165,14 +172,21 @@ async def test_config_flow(hass: HomeAssistant) -> None:
     assert result["type"] is FlowResultType.FORM
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
-        {"name": "Garage", "status_entity": STATUS, "stop_button": STOP, "energy_entity": ENERGY},
+        {"name": "Garage", **FULL},
     )
     assert result["type"] is FlowResultType.CREATE_ENTRY
     assert result["title"] == "Garage"
-    assert result["data"] == {"status_entity": STATUS, "stop_button": STOP, "energy_entity": ENERGY}
+    assert result["data"] == FULL
 
 
-async def test_card_is_served(hass: HomeAssistant) -> None:
-    await _setup(hass)
-    paths = {r.canonical for r in hass.http.app.router.resources()}
-    assert "/garage_charger/garage-charger-card.js" in paths
+async def test_options_flow_adds_missing_entities(hass: HomeAssistant) -> None:
+    """Entries from 1.0.0 lack start button and power sensor."""
+    entry = await _setup(hass)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["type"] is FlowResultType.FORM
+    result = await hass.config_entries.options.async_configure(result["flow_id"], FULL)
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+    assert entry.options == FULL
+
+

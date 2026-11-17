@@ -2,14 +2,16 @@
   "domain": "garage_charger",
   "name": "Garage Charger",
   "after_dependencies": [
-    "frontend"
+    "frontend",
+    "lovelace"
   ],
   "codeowners": [
     "@yannick80"
   ],
   "config_flow": true,
   "dependencies": [
-    "http"
+    "http",
+    "websocket_api"
   ],
   "documentation": "https://github.com/yannick80/ha-garage-charger",
   "integration_type": "helper",

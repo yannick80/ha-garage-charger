@@ -2,24 +2,15 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
-from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 
-from .const import (
-    CARD_FILENAME,
-    CARD_URL,
-    CONF_ENERGY_ENTITY,
-    CONF_STATUS_ENTITY,
-    CONF_STOP_BUTTON,
-    DOMAIN,
-    VERSION,
-)
+from . import websocket
+from .const import CONF_ENERGY_ENTITY, CONF_STATUS_ENTITY, CONF_STOP_BUTTON, DOMAIN
+from .frontend import async_register_card
 from .session import ChargingSession
 
 PLATFORMS = [Platform.SENSOR]
@@ -29,17 +20,13 @@ type GarageChargerConfigEntry = ConfigEntry[ChargingSession]
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Serve the dashboard card and load it on every dashboard."""
-    card = Path(__file__).parent / "frontend" / CARD_FILENAME
-    await hass.http.async_register_static_paths(
-        [StaticPathConfig(CARD_URL, str(card), cache_headers=False)]
-    )
-    # Load the card on every dashboard. The version in the URL makes browsers
-    # pick up a new card after an update.
-    if "frontend" in hass.config.components:
-        from homeassistant.components.frontend import add_extra_js_url
+    """Register the dashboard card and websocket API once, before any entry.
 
-        add_extra_js_url(hass, f"{CARD_URL}?v={VERSION}")
+    Entry setup can be slow; dashboards served meanwhile must already find
+    the card.
+    """
+    websocket.async_register(hass)
+    await async_register_card(hass)
     return True
 
 
