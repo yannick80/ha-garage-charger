@@ -239,3 +239,16 @@ test("stub config is explicit (first entry) and never hangs", async () => {
   const none = await h.GarageChargerCard.getStubConfig({ callWS: () => Promise.reject(new Error("x")) });
   assert.equal(none.entry_id, undefined);
 });
+
+test("theme colours by default, dark display look on request", () => {
+  const { h } = helpers();
+  const themed = card(h, ENTITIES);
+  themed.hass = hassWith(states("charging", "7360"));
+  assert.equal(themed.shadowRoot.getElementById("card").className, "card");
+  assert.equal(themed.shadowRoot.getElementById("power").className, "num on");
+  assert.equal(themed.shadowRoot.getElementById("ico").className, "ico-charging");
+  const display = card(h, Object.assign({ display_style: true }, ENTITIES));
+  display.hass = hassWith(states("available"));
+  assert.equal(display.shadowRoot.getElementById("card").className, "card display");
+  assert.equal(display.shadowRoot.getElementById("ico").className, "ico-idle");
+});

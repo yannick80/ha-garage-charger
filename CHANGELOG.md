@@ -25,6 +25,9 @@ uses [Semantic Versioning](https://semver.org/).
 - Card tests (`node --test`) and tests for the card registration.
 
 ### Changed
+- The card uses the **theme colours** of the dashboard (light and dark
+  themes). The dark look of the garage display is still available with
+  `display_style: true` or the switch in the editor.
 - The card file moved to `custom_components/garage_charger/www/`.
 - The card is served with cache headers; its URL carries a content hash, so
   browsers pick up updates on their own.

@@ -265,3 +265,13 @@ def test_card_guards_registration() -> None:
     src = CARD_JS.read_text()
     assert "if (!customElements.get(TAG))" in src
     assert "window.customCards.some" in src
+
+
+def test_card_colours_come_from_theme() -> None:
+    """Hard-coded colours only as fallbacks or in the opt-in display palette."""
+    src = re.sub(r"/\*.*?\*/", "", CARD_JS.read_text(), flags=re.S)
+    for line in src.splitlines():
+        if re.search(r"#[0-9A-Fa-f]{3,6}\b", line):
+            assert "--gc-" in line, f"hard-coded colour outside theme variables: {line.strip()}"
+    assert "var(--primary-text-color" in src
+    assert "var(--ha-card-background" in src

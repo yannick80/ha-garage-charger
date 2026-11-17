@@ -8,6 +8,7 @@
  *   entry_id: <Garage Charger config entry>   # the editor fills this in
  *   title: Garage                              # optional
  *   show_clock: true                           # optional
+ *   display_style: false                       # optional: dark display look
  *
  * Every entity can be overridden explicitly (status_entity, power_entity,
  * start_button, stop_button, duration_entity, energy_entity).
@@ -63,6 +64,7 @@
       ed_entry: "Lader",
       ed_title: "Titel",
       ed_clock: "Uhrzeit anzeigen",
+      ed_display: "Dunkle Optik wie das Garagen-Display (statt Theme-Farben)",
     },
     en: {
       available: "No vehicle connected",
@@ -85,6 +87,7 @@
       ed_entry: "Charger",
       ed_title: "Title",
       ed_clock: "Show clock",
+      ed_display: "Dark look of the garage display (instead of theme colours)",
     },
   };
 
@@ -171,39 +174,57 @@
   }
 
   // --------------------------------------------------------------- card --
+  // Colours: HA theme variables by default; `display_style: true` switches to
+  // the dark look of the garage display. Plain fallbacks for every variable.
   var STYLE =
-    ":host{display:block;height:100%}" +
-    ".card{box-sizing:border-box;height:100%;background:#0B0E14;color:#ECEFF4;" +
+    ":host{display:block;height:100%;" +
+    "--gc-bg:var(--ha-card-background,var(--card-background-color,#fff));" +
+    "--gc-tile:var(--secondary-background-color,#f2f3f5);" +
+    "--gc-text:var(--primary-text-color,#212121);" +
+    "--gc-dim:var(--secondary-text-color,#727272);" +
+    "--gc-green:var(--success-color,#43a047);" +
+    "--gc-on-green:var(--text-primary-color,#fff);" +
+    "--gc-red:var(--error-color,#db4437);" +
+    "--gc-on-red:var(--text-primary-color,#fff);" +
+    "--gc-off-bg:var(--secondary-background-color,#e8e8e8);" +
+    "--gc-off-text:var(--disabled-text-color,#9e9e9e);" +
+    "--gc-err-bg:rgba(219,68,55,.12);" +
+    "--gc-font:var(--ha-font-family-body,var(--paper-font-body1_-_font-family,system-ui)),sans-serif}" +
+    ".card.display{--gc-bg:#0B0E14;--gc-tile:#171C27;--gc-text:#ECEFF4;--gc-dim:#8B93A5;" +
+    "--gc-green:#0FDE41;--gc-on-green:#0B0E14;--gc-red:#E5484D;--gc-on-red:#fff;" +
+    "--gc-off-bg:#252C3B;--gc-off-text:#5C6578;--gc-err-bg:#3A1D22;--gc-font:Montserrat,system-ui,sans-serif}" +
+    ".card{box-sizing:border-box;height:100%;background:var(--gc-bg);color:var(--gc-text);" +
     "border-radius:var(--ha-card-border-radius,12px);padding:16px;overflow:hidden;" +
-    "font-family:Montserrat,var(--ha-font-family-body,system-ui),sans-serif;" +
-    "display:flex;flex-direction:column}" +
+    "font-family:var(--gc-font);display:flex;flex-direction:column}" +
     ".head{display:flex;justify-content:space-between;align-items:center;font-size:22px;font-weight:600;padding:0 4px;margin-bottom:12px}" +
-    ".tile{background:#171C27;border-radius:18px}" +
+    ".tile{background:var(--gc-tile);border-radius:18px}" +
     ".main{padding:14px 16px 22px;margin-bottom:12px;flex:1 1 auto}" +
     ".status{display:flex;align-items:center;font-size:19px}" +
     ".status svg{width:44px;height:44px;fill:currentColor;flex:none;margin-right:14px}" +
+    ".ico-charging{color:var(--gc-green)}.ico-faulted{color:var(--gc-red)}.ico-idle{color:var(--gc-dim)}.ico-ready{color:var(--gc-text)}" +
     ".power{display:flex;justify-content:center;align-items:flex-end;margin-top:6px}" +
     ".power .num{font-size:76px;font-weight:700;line-height:1;letter-spacing:-1px;margin:0 8px}" +
-    ".power .unit{font-size:20px;color:#8B93A5;padding-bottom:8px}" +
-    ".power svg{width:42px;height:42px;fill:#0FDE41;padding-bottom:12px}" +
+    ".power .num.on{color:var(--gc-green)}" +
+    ".power .unit{font-size:20px;color:var(--gc-dim);padding-bottom:8px}" +
+    ".power svg{width:42px;height:42px;fill:var(--gc-green);padding-bottom:12px}" +
     ".vals{display:flex;margin-bottom:12px}" +
     ".val{flex:1 1 0;text-align:center;padding:10px 6px 8px}" +
     ".val+.val{margin-left:12px}" +
     ".val .v{font-size:26px;font-weight:600}" +
-    ".val .l{font-size:14px;color:#8B93A5;margin-top:2px}" +
+    ".val .l{font-size:14px;color:var(--gc-dim);margin-top:2px}" +
     "button{all:unset;box-sizing:border-box;width:100%;min-height:76px;border-radius:18px;" +
-    "display:flex;justify-content:center;align-items:center;font-size:22px;font-weight:600;cursor:pointer}" +
+    "display:flex;justify-content:center;align-items:center;font-size:22px;font-weight:600;cursor:pointer;font-family:var(--gc-font)}" +
     "button svg{width:26px;height:26px;fill:currentColor;margin-right:12px}" +
     "button:active{opacity:.8}" +
-    "button.start{background:#0FDE41;color:#0B0E14}" +
-    "button.stop{background:#E5484D;color:#fff}" +
-    "button.off,button.wait{background:#252C3B;color:#5C6578;cursor:default}" +
-    ".msg{display:none;margin-top:10px;padding:10px 12px;border-radius:12px;background:#3A1D22;color:#FFB4B8;font-size:14px}" +
+    "button.start{background:var(--gc-green);color:var(--gc-on-green)}" +
+    "button.stop{background:var(--gc-red);color:var(--gc-on-red)}" +
+    "button.off,button.wait{background:var(--gc-off-bg);color:var(--gc-off-text);cursor:default}" +
+    ".msg{display:none;margin-top:10px;padding:10px 12px;border-radius:12px;background:var(--gc-err-bg);color:var(--gc-red);font-size:14px}" +
     ".msg.show{display:block}" +
     ".hidden{display:none!important}";
 
   var LAYOUT =
-    '<ha-card class="card">' +
+    '<ha-card class="card" id="card">' +
     '<div class="head"><span id="title"></span><span id="clock"></span></div>' +
     '<div class="tile main">' +
     '<div class="status"><span id="ico"></span><span id="status"></span></div>' +
@@ -367,6 +388,7 @@
       }
       if (this._error && Date.now() > this._error.until) this._error = null;
 
+      $("card").className = c.display_style ? "card display" : "card";
       $("title").textContent = c.title || "";
       $("clock").textContent = c.show_clock === false ? "" :
         new Date().toLocaleTimeString(language === "de" ? "de-DE" : undefined, { hour: "2-digit", minute: "2-digit" });
@@ -376,10 +398,10 @@
       $("status").textContent = t[status] || t.offline;
       var ico = $("ico");
       ico.innerHTML = svg(status === "faulted" ? ICONS.alert : idle ? ICONS.station : ICONS.car);
-      ico.style.color = charging ? "#0FDE41" : status === "faulted" ? "#E5484D" : idle ? "#8B93A5" : "#ECEFF4";
+      ico.className = charging ? "ico-charging" : status === "faulted" ? "ico-faulted" : idle ? "ico-idle" : "ico-ready";
 
       $("power").textContent = formatPower(this._stateObj(r.cfg.power_entity), language);
-      $("power").style.color = charging ? "#0FDE41" : "#ECEFF4";
+      $("power").className = charging ? "num on" : "num";
       $("bolt").classList.toggle("hidden", !charging);
 
       var showVals = !!(r.cfg.duration_entity || r.cfg.energy_entity);
@@ -480,6 +502,7 @@
         { name: "entry_id", required: true, selector: { select: { options: options, mode: "dropdown" } } },
         { name: "title", selector: { text: {} } },
         { name: "show_clock", selector: { boolean: {} } },
+        { name: "display_style", selector: { boolean: {} } },
       ];
     }
 
@@ -490,7 +513,8 @@
         ensureHaForm().then(function () {
           if (self._form) return;
           var form = document.createElement("ha-form");
-          form.computeLabel = function (s) { return tr(self._hass, "ed_" + (s.name === "entry_id" ? "entry" : s.name === "show_clock" ? "clock" : "title")); };
+          var labels = { entry_id: "ed_entry", title: "ed_title", show_clock: "ed_clock", display_style: "ed_display" };
+          form.computeLabel = function (s) { return tr(self._hass, labels[s.name]); };
           form.addEventListener("value-changed", function (ev) {
             self._emit(Object.assign({}, self._config, ev.detail.value));
           });

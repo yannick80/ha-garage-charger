@@ -35,7 +35,9 @@ exposes start/stop button entities.
     Start/Stop button;
   - is **loaded automatically** by the integration: it is registered as a
     dashboard resource, so you add no resource and copy no file;
-  - has a visual editor (pick the charger, title, clock);
+  - uses your **theme colours** (light and dark); `display_style: true`
+    switches to the dark look of the garage display;
+  - has a visual editor (pick the charger, title, clock, look);
   - works on old wall tablets and WebViews (legacy-safe JavaScript);
   - follows the HA language (German/English).
 - **ESPHome display** with the same look (see [`esphome/`](esphome/)).
@@ -81,6 +83,7 @@ type: custom:garage-charger-card
 entry_id: <id of the Garage Charger entry>   # filled in by the editor
 title: Garage        # optional
 show_clock: true     # optional
+display_style: false # optional: dark garage-display look instead of theme colours
 ```
 
 Any entity can be overridden explicitly (`status_entity`, `power_entity`,
