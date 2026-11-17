@@ -7,7 +7,9 @@
         "data": {
           "name": "Name",
           "status_entity": "Charger status sensor (e.g. …_ev_charger_status)",
+          "start_button": "Wallbox start button",
           "stop_button": "Wallbox stop button",
+          "power_entity": "Charging power (Shelly, W)",
           "energy_entity": "Wallbox energy meter (Shelly, total kWh)"
         }
       }
@@ -22,7 +24,9 @@
         "title": "Garage Charger",
         "data": {
           "status_entity": "Charger status sensor (e.g. …_ev_charger_status)",
+          "start_button": "Wallbox start button",
           "stop_button": "Wallbox stop button",
+          "power_entity": "Charging power (Shelly, W)",
           "energy_entity": "Wallbox energy meter (Shelly, total kWh)"
         }
       }
