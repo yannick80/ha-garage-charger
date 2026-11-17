@@ -129,6 +129,34 @@ Display behaviour:
 - The first touch only wakes it.
 - Any status change wakes the screen.
 - A red Wi-Fi icon means the connection to HA is lost.
+- `sensor.garage_display_board_temperature` reports the chip temperature
+  every minute (a 5-minute moving average). It runs a few °C above the air
+  around the board, so it shows summer and winter extremes in the garage.
+
+Example warning (the threshold is a suggestion: LCD panels of this class are
+typically rated to about 60–70 °C):
+
+```yaml
+automation:
+  - alias: Garage display too hot
+    triggers:
+      - trigger: numeric_state
+        entity_id: sensor.garage_display_board_temperature
+        above: 60
+        for: "00:10:00"
+    actions:
+      - action: notify.notify
+        data:
+          message: "Garage display at {{ states('sensor.garage_display_board_temperature') }} °C"
+```
+
+### Mounting in a garage
+
+- **Not directly on sheet metal:** use a wooden or plastic backing plate
+  with an air gap, out of direct sun, not above the parking space.
+- **Keep it powered:** the board's own heat helps against condensation.
+- **Power:** use a certified 5 V source, for example a USB-C wall-socket
+  insert or a DIN-rail power supply. Plan for at least 5 V / 1 A.
 
 ## Hardware note
 

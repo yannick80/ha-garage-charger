@@ -6,6 +6,12 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- ESPHome display: **board temperature** sensor
+  (`sensor.garage_display_board_temperature`, diagnostic, every 60 s,
+  moving average). It helps you watch summer and winter extremes in the
+  garage and trigger a warning automation.
+
 ## [1.0.0] - 2026-11-17
 
 First release.
