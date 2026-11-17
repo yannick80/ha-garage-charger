@@ -43,11 +43,13 @@ tests/
                    legacy resource warning, YAML fallback (both builds),
                    idempotency, failure isolation, async_setup vs entry setup,
                    websocket payload, card source rules (ES2019, own scope,
-                   no gap, color-mix fallback, guarded registration)
+                   no gap, color-mix fallback, guarded registration,
+                   colours only from theme variables)
   card.test.mjs    node --test: double evaluation in one context, button
                    logic, formatting, hints without config, exact service
                    call, refuse-don't-queue, background status change,
-                   entities from entry, i18n, failed call, stub config
+                   entities from entry, i18n, failed call, stub config,
+                   theme vs. display_style
 ```
 
 Tests:
@@ -83,6 +85,11 @@ Users never copy files or add resources by hand.
   `replaceAll` or `#private` fields.
 - **CSS:** no flex/grid `gap` (use margins). Every `color-mix()` needs a
   plain fallback line before it.
+- **Colours:** use HA theme variables (`--primary-text-color`,
+  `--ha-card-background`, `--success-color`, …) through the card's `--gc-*`
+  variables, each with a literal fallback. Hard-coded colours are allowed
+  only in those fallbacks and in the opt-in `display_style` palette; a
+  test enforces this.
 - **Registration:** guard both `customElements.define` and
   `window.customCards`.
 - **Errors:** catch render errors and show them in the card. Put
