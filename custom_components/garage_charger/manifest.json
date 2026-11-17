@@ -1,0 +1,20 @@
+{
+  "domain": "garage_charger",
+  "name": "Garage Charger",
+  "after_dependencies": [
+    "frontend"
+  ],
+  "codeowners": [
+    "@yannick80"
+  ],
+  "config_flow": true,
+  "dependencies": [
+    "http"
+  ],
+  "documentation": "https://github.com/yannick80/ha-garage-charger",
+  "integration_type": "helper",
+  "iot_class": "calculated",
+  "issue_tracker": "https://github.com/yannick80/ha-garage-charger/issues",
+  "requirements": [],
+  "version": "1.0.0"
+}

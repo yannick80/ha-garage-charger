@@ -1,0 +1,31 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Garage Charger",
+        "description": "Erfasst Ladedauer und geladene Energie pro Ladevorgang. Stop setzt beide Werte zurück.",
+        "data": {
+          "name": "Name",
+          "status_entity": "Lader-Status (z. B. …_ev_charger_status)",
+          "stop_button": "Stop-Button der Wallbox",
+          "energy_entity": "Energiezähler der Wallbox (Shelly, kWh gesamt)"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Dieser Lader ist bereits eingerichtet."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Garage Charger",
+        "data": {
+          "status_entity": "Lader-Status (z. B. …_ev_charger_status)",
+          "stop_button": "Stop-Button der Wallbox",
+          "energy_entity": "Energiezähler der Wallbox (Shelly, kWh gesamt)"
+        }
+      }
+    }
+  }
+}
