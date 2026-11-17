@@ -281,6 +281,19 @@ font:
 
 # ------------------------------------------------------- data from Home Assistant --
 sensor:
+  # Chip temperature of the ESP32-S3, reported to Home Assistant. It runs a
+  # few °C above the air around it – use it to see summer/winter extremes in
+  # the garage and to trigger a warning automation.
+  - platform: internal_temperature
+    name: Board temperature
+    id: board_temp
+    update_interval: 60s
+    entity_category: diagnostic
+    filters:
+      - sliding_window_moving_average:
+          window_size: 5
+          send_every: 1
+
   - platform: homeassistant
     id: ha_power
     entity_id: ${charge_power}
