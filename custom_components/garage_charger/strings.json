@@ -1,0 +1,31 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Garage Charger",
+        "description": "Tracks charging time and energy per session. Pressing Stop resets both values.",
+        "data": {
+          "name": "Name",
+          "status_entity": "Charger status sensor (e.g. …_ev_charger_status)",
+          "stop_button": "Wallbox stop button",
+          "energy_entity": "Wallbox energy meter (Shelly, total kWh)"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "This charger is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Garage Charger",
+        "data": {
+          "status_entity": "Charger status sensor (e.g. …_ev_charger_status)",
+          "stop_button": "Wallbox stop button",
+          "energy_entity": "Wallbox energy meter (Shelly, total kWh)"
+        }
+      }
+    }
+  }
+}

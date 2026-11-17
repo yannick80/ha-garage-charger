@@ -1,0 +1,490 @@
+# =============================================================================
+#  Garage Display – ESPHome firmware
+#  Board: Guition ESP32-4848S040C (ESP32-S3, 4" 480x480 ST7701S, GT911 touch)
+#
+#  Shows the wallbox charging power (Shelly 3EM-63T Gen3), the charger status
+#  (AlphaESS cloud integration), a clock, and one Start/Stop button.
+#  Solar control is done by the wallbox itself.
+#
+#  After adopting the device in HA: Settings → Devices → ESPHome → Garage
+#  Display → Configure → enable "Allow the device to perform Home Assistant
+#  actions" (otherwise the Start/Stop button does nothing).
+# =============================================================================
+
+substitutions:
+  name: garage-display
+  friendly_name: Garage Display
+  screen_timeout: "120"   # seconds without touch before the screen goes dark
+
+  # ---- your Home Assistant entities (Settings → Entities) ----
+  charger_status: sensor.al_serial_ev_charger_status
+  start_button: button.al_serial_start_charging
+  stop_button: button.al_serial_stop_charging
+  charge_power: sensor.wallbox_meter_total_active_power
+  # created by the Garage Charger integration (HACS)
+  duration_sensor: sensor.garage_ladedauer
+  energy_sensor: sensor.garage_geladen
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  platformio_options:
+    board_build.flash_mode: dio
+
+esp32:
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  flash_size: 16MB
+  framework:
+    type: esp-idf
+    sdkconfig_options:
+      CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240: y
+      CONFIG_ESP32S3_DATA_CACHE_64KB: y
+      CONFIG_ESP32S3_DATA_CACHE_LINE_64B: y
+      CONFIG_SPIRAM_FETCH_INSTRUCTIONS: y
+      CONFIG_SPIRAM_RODATA: y
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+logger:
+  hardware_uart: UART0   # GPIO19/20 are used by touch + display, not USB-JTAG
+
+api:
+  encryption:
+    key: !secret api_key
+  on_client_connected:
+    - lvgl.widget.hide: lbl_warn
+  on_client_disconnected:
+    - lvgl.widget.show: lbl_warn
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "Garage-Display Fallback"
+
+captive_portal:
+
+globals:
+  - id: last_wake
+    type: uint32_t
+    initial_value: "0"
+  # true between a button press and the cloud reporting the new status
+  - id: pending
+    type: bool
+    initial_value: "false"
+
+# ---------------------------------------------------------------- hardware --
+output:
+  - platform: ledc
+    pin: GPIO38
+    id: backlight_pwm
+    frequency: 20000Hz
+
+light:
+  - platform: monochromatic
+    id: backlight
+    name: Backlight          # HA can wake / dim the screen with this light
+    output: backlight_pwm
+    restore_mode: ALWAYS_ON
+    default_transition_length: 300ms
+    on_turn_on:
+      - lambda: "id(last_wake) = millis();"
+      - lvgl.resume:
+      - lvgl.widget.redraw:
+    on_turn_off:
+      - lvgl.pause:
+
+i2c:
+  sda: GPIO19
+  scl: GPIO45
+  frequency: 400kHz
+
+spi:
+  mosi_pin: GPIO47
+  clk_pin: GPIO48
+
+display:
+  - platform: st7701s
+    id: lcd
+    auto_clear_enabled: false
+    update_interval: never
+    spi_mode: MODE3
+    color_order: RGB
+    invert_colors: true
+    dimensions:
+      width: 480
+      height: 480
+    cs_pin: GPIO39
+    de_pin: GPIO18
+    hsync_pin: GPIO16
+    vsync_pin: GPIO17
+    pclk_pin: GPIO21
+    pclk_frequency: 12MHz
+    pclk_inverted: false
+    hsync_pulse_width: 8
+    hsync_front_porch: 10
+    hsync_back_porch: 20
+    vsync_pulse_width: 8
+    vsync_front_porch: 10
+    vsync_back_porch: 10
+    init_sequence:
+      - 1
+      - [0xFF, 0x77, 0x01, 0x00, 0x00, 0x10]
+      - [0xCD, 0x00]
+    data_pins:
+      red: [GPIO11, GPIO12, GPIO13, GPIO14, GPIO0]
+      green: [GPIO8, GPIO20, GPIO3, GPIO46, GPIO9, GPIO10]
+      blue: [GPIO4, GPIO5, GPIO6, GPIO7, GPIO15]
+
+touchscreen:
+  - platform: gt911
+    id: touch
+    display: lcd
+    on_release:
+      # First touch on a dark screen only wakes it (does not press the button)
+      - if:
+          condition: lvgl.is_paused
+          then:
+            - light.turn_on: backlight
+
+# Screen off after ${screen_timeout}s idle – but never while charging
+interval:
+  - interval: 10s
+    then:
+      - if:
+          condition:
+            and:
+              - light.is_on: backlight
+              - lvgl.is_idle:
+                  timeout: ${screen_timeout}s
+              - lambda: |-
+                  return millis() - id(last_wake) > ${screen_timeout} * 1000UL
+                         && id(ha_status).state != "charging";
+          then:
+            - light.turn_off: backlight
+
+time:
+  - platform: homeassistant
+    id: ha_time
+    on_time_sync:
+      - script.execute: update_clock
+    on_time:
+      - seconds: 0
+        then:
+          - script.execute: update_clock
+
+# ----------------------------------------------------------------- logic --
+script:
+  - id: update_clock
+    then:
+      - lvgl.label.update:
+          id: lbl_clock
+          text: !lambda return id(ha_time).now().strftime("%H:%M");
+
+  # Start is possible when a car is plugged in and waiting ("preparing").
+  # Stop is possible while a session runs – also when the wallbox paused it
+  # for lack of sun (suspended_evse) or the car paused it (suspended_ev).
+  - id: refresh_button
+    then:
+      - if:
+          condition:
+            lambda: return id(pending);
+          then:
+            - lvgl.widget.update: { id: btn_action, clickable: false, bg_color: 0x252C3B }
+            - lvgl.label.update: { id: lbl_btn_icon, text_color: 0x5C6578, text: "\U000F051F" }
+            - lvgl.label.update: { id: lbl_btn, text_color: 0x5C6578, text: "Bitte warten…" }
+          else:
+            - if:
+                condition:
+                  lambda: return id(ha_status).state == "preparing";
+                then:
+                  - lvgl.widget.update: { id: btn_action, clickable: true, bg_color: 0x0FDE41 }
+                  - lvgl.label.update: { id: lbl_btn_icon, text_color: 0x0B0E14, text: "\U000F040A" }
+                  - lvgl.label.update: { id: lbl_btn, text_color: 0x0B0E14, text: "Laden starten" }
+                else:
+                  - if:
+                      condition:
+                        lambda: |-
+                          auto s = id(ha_status).state;
+                          return s == "charging" || s == "suspended_evse" || s == "suspended_ev";
+                      then:
+                        - lvgl.widget.update: { id: btn_action, clickable: true, bg_color: 0xE5484D }
+                        - lvgl.label.update: { id: lbl_btn_icon, text_color: 0xFFFFFF, text: "\U000F04DB" }
+                        - lvgl.label.update: { id: lbl_btn, text_color: 0xFFFFFF, text: "Laden stoppen" }
+                      else:
+                        - lvgl.widget.update: { id: btn_action, clickable: false, bg_color: 0x252C3B }
+                        - lvgl.label.update: { id: lbl_btn_icon, text_color: 0x5C6578, text: "\U000F040A" }
+                        - lvgl.label.update: { id: lbl_btn, text_color: 0x5C6578, text: "Laden starten" }
+
+  # The cloud API reports the new status only after up to ~1 min.
+  # Keep the button locked until then (or give up after 2 min).
+  - id: pending_timeout
+    mode: restart
+    then:
+      - delay: 120s
+      - globals.set: { id: pending, value: "false" }
+      - script.execute: refresh_button
+
+# ------------------------------------------------------------------- fonts --
+font:
+  - file: { type: gfonts, family: Montserrat, weight: 600 }
+    id: f_title
+    size: 28
+    glyphsets: [GF_Latin_Core]
+  - file: { type: gfonts, family: Montserrat, weight: 500 }
+    id: f_md
+    size: 26
+    glyphsets: [GF_Latin_Core]
+  - file: { type: gfonts, family: Montserrat, weight: 600 }
+    id: f_btn
+    size: 30
+    glyphsets: [GF_Latin_Core]
+  - file: { type: gfonts, family: Montserrat, weight: 600 }
+    id: f_val
+    size: 34
+    glyphsets: [GF_Latin_Core]
+  - file: { type: gfonts, family: Montserrat, weight: 500 }
+    id: f_sm
+    size: 18
+    glyphsets: [GF_Latin_Core]
+  - file: { type: gfonts, family: Montserrat, weight: 700 }
+    id: f_big
+    size: 100
+    glyphs: "0123456789.,-"
+  - file:
+      type: web
+      url: https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/fonts/materialdesignicons-webfont.ttf
+    id: f_icon_l
+    size: 56
+    glyphs:
+      - "\U000F0B6C"   # car-electric
+      - "\U000F05F1"   # ev-station
+      - "\U000F140B"   # lightning-bolt
+      - "\U000F0028"   # alert-circle
+  - file:
+      type: web
+      url: https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/fonts/materialdesignicons-webfont.ttf
+    id: f_icon
+    size: 32
+    glyphs:
+      - "\U000F05AA"   # wifi-off
+      - "\U000F040A"   # play
+      - "\U000F04DB"   # stop
+      - "\U000F051F"   # timer-sand
+
+# ------------------------------------------------------- data from Home Assistant --
+sensor:
+  - platform: homeassistant
+    id: ha_power
+    entity_id: ${charge_power}
+    on_value:
+      - lvgl.label.update:
+          id: lbl_power
+          text: !lambda |-
+            if (isnan(x)) return std::string("--");
+            auto t = str_sprintf("%.1f", fmaxf(x, 0) / 1000.0f);
+            std::replace(t.begin(), t.end(), '.', ',');
+            return t;
+
+  - platform: homeassistant
+    id: ha_duration
+    entity_id: ${duration_sensor}
+    on_value:
+      - lvgl.label.update:
+          id: val_duration
+          text: !lambda |-
+            if (isnan(x)) return std::string("--");
+            int m = (int) x;
+            return str_sprintf("%d:%02d h", m / 60, m % 60);
+
+  - platform: homeassistant
+    id: ha_energy
+    entity_id: ${energy_sensor}
+    on_value:
+      - lvgl.label.update:
+          id: val_energy
+          text: !lambda |-
+            if (isnan(x)) return std::string("--");
+            auto t = str_sprintf("%.1f kWh", x);
+            std::replace(t.begin(), t.end(), '.', ',');
+            return t;
+
+text_sensor:
+  - platform: homeassistant
+    id: ha_status
+    entity_id: ${charger_status}
+    on_value:
+      - light.turn_on: backlight            # plug-in / start / stop wakes the screen
+      - globals.set: { id: pending, value: "false" }
+      - script.stop: pending_timeout
+      - script.execute: refresh_button
+      - lvgl.label.update:
+          id: lbl_status
+          text: !lambda |-
+            if (x == "available") return std::string("Kein Fahrzeug verbunden");
+            if (x == "preparing") return std::string("Angesteckt – bereit");
+            if (x == "charging") return std::string("Lädt");
+            if (x == "suspended_evse") return std::string("Pausiert – zu wenig PV");
+            if (x == "suspended_ev") return std::string("Vom Fahrzeug pausiert");
+            if (x == "finishing") return std::string("Ladevorgang beendet");
+            if (x == "faulted") return std::string("Fehler am Lader");
+            return std::string("Lader offline");
+      - lvgl.label.update:
+          id: ico_car
+          text: !lambda |-
+            if (x == "faulted") return std::string("\U000F0028");
+            if (x == "available" || x == "unknown" || x == "unavailable") return std::string("\U000F05F1");
+            return std::string("\U000F0B6C");
+          text_color: !lambda |-
+            if (x == "charging") return lv_color_hex(0x0FDE41);
+            if (x == "faulted") return lv_color_hex(0xE5484D);
+            if (x == "available" || x == "unknown" || x == "unavailable") return lv_color_hex(0x8B93A5);
+            return lv_color_hex(0xECEFF4);
+      - if:
+          condition:
+            lambda: 'return x == "charging";'
+          then:
+            - lvgl.widget.show: lbl_bolt
+            - lvgl.label.update: { id: lbl_power, text_color: 0x0FDE41 }
+          else:
+            - lvgl.widget.hide: lbl_bolt
+            - lvgl.label.update: { id: lbl_power, text_color: 0xECEFF4 }
+
+# -------------------------------------------------------------------- UI --
+lvgl:
+  displays: [lcd]
+  touchscreens: [touch]
+  buffer_size: 100%
+  theme:
+    label:
+      text_color: 0xECEFF4
+      text_font: f_md
+    button:
+      radius: 20
+      border_width: 0
+      shadow_width: 0
+      text_color: 0x0B0E14
+      pressed:
+        bg_opa: 70%
+
+  pages:
+    - id: main_page
+      bg_color: 0x0B0E14
+      pad_all: 0
+      scrollable: false
+      widgets:
+        # ---- header ------------------------------------------------------
+        - label: { text: "Garage", text_font: f_title, x: 20, y: 16 }
+        - label: { id: lbl_warn, text: "\U000F05AA", text_font: f_icon, text_color: 0xE5484D, align: TOP_MID, y: 14 }
+        - label: { id: lbl_clock, text: "--:--", text_font: f_title, align: TOP_RIGHT, x: -20, y: 16 }
+
+        # ---- main card ---------------------------------------------------
+        - obj:
+            x: 12
+            y: 66
+            width: 456
+            height: 196
+            bg_color: 0x171C27
+            border_width: 0
+            radius: 20
+            pad_all: 0
+            scrollable: false
+            widgets:
+              - label: { id: ico_car, text: "\U000F05F1", text_font: f_icon_l, text_color: 0x8B93A5, x: 18, y: 14 }
+              - label:
+                  id: lbl_status
+                  text: "Verbinde…"
+                  x: 90
+                  y: 30
+                  width: 350
+                  height: 34
+                  long_mode: DOT
+              # bolt + number + unit in a row that re-centres as the text changes
+              - obj:
+                  align: CENTER
+                  y: 26
+                  width: SIZE_CONTENT
+                  height: SIZE_CONTENT
+                  bg_opa: TRANSP
+                  border_width: 0
+                  pad_all: 0
+                  scrollable: false
+                  layout:
+                    type: FLEX
+                    flex_flow: ROW
+                    flex_align_cross: END
+                    pad_column: 10
+                  widgets:
+                    - label: { id: lbl_bolt, text: "\U000F140B", text_font: f_icon_l, text_color: 0x0FDE41, hidden: true, pad_bottom: 24 }
+                    - label: { id: lbl_power, text: "--", text_font: f_big }
+                    - label: { text: "kW", text_font: f_md, text_color: 0x8B93A5, pad_bottom: 22 }
+
+        # ---- Ladedauer / Geladen ----------------------------------------
+        - obj:
+            x: 12
+            y: 274
+            width: 222
+            height: 78
+            bg_color: 0x171C27
+            border_width: 0
+            radius: 20
+            pad_all: 0
+            scrollable: false
+            widgets:
+              - label: { id: val_duration, text: "--", text_font: f_val, align: TOP_MID, y: 8 }
+              - label: { text: "Ladedauer", text_font: f_sm, text_color: 0x8B93A5, align: BOTTOM_MID, y: -8 }
+        - obj:
+            x: 246
+            y: 274
+            width: 222
+            height: 78
+            bg_color: 0x171C27
+            border_width: 0
+            radius: 20
+            pad_all: 0
+            scrollable: false
+            widgets:
+              - label: { id: val_energy, text: "--", text_font: f_val, align: TOP_MID, y: 8 }
+              - label: { text: "Geladen", text_font: f_sm, text_color: 0x8B93A5, align: BOTTOM_MID, y: -8 }
+
+        # ---- start / stop ------------------------------------------------
+        - button:
+            id: btn_action
+            x: 12
+            y: 362
+            width: 456
+            height: 106
+            bg_color: 0x252C3B
+            clickable: false
+            layout:
+              type: FLEX
+              flex_flow: ROW
+              flex_align_main: CENTER
+              flex_align_cross: CENTER
+              flex_align_track: CENTER
+              pad_column: 14
+            widgets:
+              - label: { id: lbl_btn_icon, text: "\U000F040A", text_font: f_icon, text_color: 0x5C6578 }
+              - label: { id: lbl_btn, text: "Laden starten", text_font: f_btn, text_color: 0x5C6578 }
+            on_click:
+              - if:
+                  condition:
+                    lambda: return id(ha_status).state == "preparing";
+                  then:
+                    - homeassistant.action:
+                        action: button.press
+                        data: { entity_id: "${start_button}" }
+                  else:
+                    - homeassistant.action:
+                        action: button.press
+                        data: { entity_id: "${stop_button}" }
+              - globals.set: { id: pending, value: "true" }
+              - script.execute: refresh_button
+              - script.execute: pending_timeout
