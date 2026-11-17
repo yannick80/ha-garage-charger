@@ -1,7 +1,7 @@
 """Constants for Garage Charger."""
 
 DOMAIN = "garage_charger"
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 
 CONF_STATUS_ENTITY = "status_entity"
 CONF_STOP_BUTTON = "stop_button"
