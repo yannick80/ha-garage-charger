@@ -1,0 +1,43 @@
+name: Bug report
+description: Charging time or energy are wrong, Start/Stop does not work, or the card or display shows an error.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happens, and what did you expect?
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Garage Charger version
+      description: Shown under Settings > Devices & services > Garage Charger.
+    validations:
+      required: true
+  - type: input
+    id: ha_version
+    attributes:
+      label: Home Assistant version
+    validations:
+      required: true
+  - type: dropdown
+    id: part
+    attributes:
+      label: Which part?
+      options: [Integration (sensors, session), Dashboard card, ESPHome display]
+    validations:
+      required: true
+  - type: input
+    id: charger
+    attributes:
+      label: Wallbox and power meter
+      placeholder: e.g. Alpha ESS wallbox with Shelly 3EM-63T Gen3
+  - type: textarea
+    id: states
+    attributes:
+      label: States and logs
+      description: >
+        The charger status during the problem, the Ladedauer/Geladen sensors, and log lines
+        mentioning garage_charger. For the card: browser or app and the card YAML.
+      render: text

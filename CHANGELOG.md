@@ -6,6 +6,9 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- Repository: CI jobs renamed (*HACS validation*, *Hassfest*, *Lint and tests*, *Card tests*), ruff lint, syntax check of the card file, current GitHub Actions versions, Dependabot, issue templates, README badges.
+
 ## [1.1.0] - 2026-11-17
 
 ### Added

@@ -1,7 +1,19 @@
-# Garage Charger
+<p align="center">
+  <a href="https://github.com/yannick80/ha-garage-charger/releases/latest">
+    <img alt="Latest release" src="https://img.shields.io/github/v/release/yannick80/ha-garage-charger?label=release"/>
+  </a>
+  <a href="https://www.home-assistant.io">
+    <img alt="HA 2024.11+" src="https://img.shields.io/badge/HA-2024.11%2B-blue.svg"/>
+  </a>
+  <a href="https://github.com/yannick80/ha-garage-charger/actions/workflows/validate.yml">
+    <img alt="Validate" src="https://img.shields.io/github/actions/workflow/status/yannick80/ha-garage-charger/validate.yml?branch=main&label=validate"/>
+  </a>
+  <a href="LICENSE">
+    <img alt="License" src="https://img.shields.io/github/license/yannick80/ha-garage-charger.svg"/>
+  </a>
+</p>
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz/docs/faq/custom_repositories)
-[![Validate](https://github.com/yannick80/ha-garage-charger/actions/workflows/validate.yml/badge.svg)](https://github.com/yannick80/ha-garage-charger/actions/workflows/validate.yml)
+# Garage Charger
 
 A Home Assistant integration and dashboard card for a **wallbox in the
 garage**, plus a matching **ESPHome touch display**. Inspired by
@@ -167,6 +179,7 @@ supply. **That is mains work and must be done by a qualified electrician.**
 
 ```bash
 pip install -r requirements_test.txt
+ruff check custom_components tests
 pytest                      # integration, card registration, card source rules
 node --test tests/*.mjs     # card behaviour (no npm dependencies)
 ```
@@ -175,4 +188,4 @@ See [AGENTS.md](AGENTS.md) for the rules this repo follows.
 
 ## License
 
-MIT
+[MIT](LICENSE)
