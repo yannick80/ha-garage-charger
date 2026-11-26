@@ -186,6 +186,15 @@ node --test tests/*.mjs     # card behaviour (no npm dependencies)
 
 See [AGENTS.md](AGENTS.md) for the rules this repo follows.
 
+## Credits
+
+- Inspired by [evcc-garage-display](https://github.com/tobymarks/evcc-garage-display) by [tobymarks](https://github.com/tobymarks). No code is shared: that project is a PlatformIO firmware for evcc, this one an ESPHome configuration for Home Assistant.
+- Icons in the card and on the display: [Material Design Icons](https://pictogrammers.com/library/mdi/) (Pictogrammers Free License). The display downloads the icon font and [Montserrat](https://fonts.google.com/specimen/Montserrat) (SIL Open Font License) when ESPHome builds the firmware; neither is stored in this repository.
+
+## Disclaimer
+
+This project is independent and not affiliated with, endorsed by, or supported by Alpha ESS Co., Ltd., Shelly Group or the evcc project. The names are used only to say which devices and projects it works with. The repository contains no logos or other artwork of these companies.
+
 ## License
 
 [MIT](LICENSE)
