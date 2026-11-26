@@ -6,6 +6,8 @@ uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-11-26
+
 ### Changed
 - README: credits (evcc-garage-display, Material Design Icons, Montserrat) and a disclaimer for the named brands.
 - Repository: CI jobs renamed (*HACS validation*, *Hassfest*, *Lint and tests*, *Card tests*), ruff lint, syntax check of the card file, current GitHub Actions versions, Dependabot, issue templates, README badges.
